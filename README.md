@@ -1,4 +1,7 @@
 # MhacsAlgo
 
 - KRYLOV Subspace Methods for solving linear systems Ax=b
-- Spectral step gradient methods
+- Gradient Descent Methods with :
+  - Fixed step
+  - 
+  - Spectral step 
