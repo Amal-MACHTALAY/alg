@@ -13,21 +13,20 @@ import numpy as np
 def sample_1d(pdf, interval, nbr_samples, n_max=10**6):
     np.random.seed(45)
     """ genearte a list of random samples from a given pdf suggests random samples in 'interval' 
-    and accepts-rejects the suggestion with probability pdf(x).
+    and accepts-rejects the suggestion with probability 0<pdf(x)<=M.
     We generate two numbers x,y from auniform distribution.  
     If pdf(x)≤y then we keep x as a sample, otherwise we reject it.
     In regions where the pdf is high, we are less likely to reject an x, 
     and so we will get more values in that region. 
     """
     samples=[]
-    low=interval[0]
-    high=interval[1]
+    M=1
     n=0
     while len(samples)<nbr_samples and n<n_max:
-        x=np.random.uniform(low,high)
+        x=np.random.uniform(low=interval[0],high=interval[1])
         new_sample=pdf(x)
-        assert new_sample>=0 and new_sample<=1
-        if np.random.uniform(low,high) <=new_sample:
+        assert new_sample>=0 and new_sample<=M
+        if np.random.uniform(low=0,high=M) <=new_sample:
             samples += [x]
         n+=1
     return sorted(samples)
