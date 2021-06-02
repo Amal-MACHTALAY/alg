@@ -7,6 +7,7 @@ Created on Tue Jun  1 17:49:44 2021
 """
 
 import numpy as np
+import matplotlib.pyplot as plt
 
 """ random samples from 1d distribution """
 
