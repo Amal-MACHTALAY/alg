@@ -43,7 +43,7 @@ def AxB(X,Y):
 
 # def LU(L:'float32[:,:]',U:'float32[:,:]'):
 def LU_decomposition(A):
-    """ Compute LU Factorization """
+    """ Compute the (complete) LU Factorization """
     n = max(len(A),len(A[0]))
     L = np.zeros((n,n),dtype=np.float32)
     for i in range(n):
@@ -59,6 +59,11 @@ def LU_decomposition(A):
                 U[j,k] = U[j,k] - L[j,i]*U[i,k]
     return L,U
 
+# # the *incomplete LU* decomposition
+# import scipy.sparse.linalg as spla
+# M_ilu = spla.spilu(M) # Here, M_ilu is a sparse matrix in a CSC format
+# # and M will now be the linear operator 
+# M = spla.LinearOperator(M.shape, M_iLU.solve)
 
 
 def LU_inverse(L,U):
@@ -82,10 +87,10 @@ def LU_inverse(L,U):
         
     return E2,E1
 
+# np.linalg.inv(M)
+
+
 def inv_matrix_LU_deco(M):
-    # size=M.shape[0]
-    # L=np.zeros((size,size))
-    # U=np.zeros((size,size))
     L,U=LU_decomposition(M)
     inv_L,inv_U=LU_inverse(L,U)
     inv_M=AxB(inv_U,inv_L)
