@@ -121,9 +121,16 @@ def matT(A):
         for j in range(n):
             At[i,j]=A[j,i]
     return At
+
+def vec_asarray(v):
+    vv=np.zeros((len(v),len(v[0])))
+    for i in range(len(v)):
+        for j in range(len(v[0])):
+            vv[i,j]=v[i][j]
+    return vv
     
 
-def gmres(w0, fct, sigma, tol):
+def newton_gmres(w0, fct, sigma, tol):
     while True :
         r=-fct(w0)
         v=[]
@@ -154,8 +161,8 @@ def gmres(w0, fct, sigma, tol):
         # calcul of beta*e1
         beta=np.zeros(m)
         beta[0]=norm_two(r)
-        y=np.linalg.lstsq(h.transpose(),beta,rcond=-1)[0]
-        w0_new=w0+matvec(np.asarray(v).transpose(),y)
+        y=np.linalg.lstsq(matT(h),beta,rcond=-1)[0]
+        w0_new=w0+matvec(matT(vec_asarray(v)),y)
         if norm_two(fct(w0))<=tol or norm_two(w0-w0_new)<=0.00000001 :
             break
         # tol=max(0.9*(norm_two(fct(w0_new))/norm_two(fct(w0)))**2,0.9*tol**2)
@@ -176,7 +183,7 @@ def Jacobian(x):
     return np.array([[np.cos(x[1]),-x[0] * np.sin(x[1])],[x[1],x[0]-1]])
 
 
-result=gmres(np.array([0,0]), func, 0.01, 1e-10)
+result=newton_gmres(np.array([0,0]), func, 0.01, 1e-10)
 print("\n***************** Using Newton-GMRES ******************** \n")
 print('x=',result)
 print('f(x)=',func(result))
