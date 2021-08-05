@@ -7,3 +7,5 @@
 - EGO : Efficient Global Optimization method
 - Sampling : genearte a list of random samples from a given pdf
 - Closest : Find Closest number in a list 
+- Newton-Gmres non-linear solver
+- Numpy and scipy functions
