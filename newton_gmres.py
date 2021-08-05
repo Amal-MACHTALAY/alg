@@ -80,98 +80,86 @@ def get_preconditionner(A):
     return M
 
 def matvec(A,v):
-    n = len(v)
+    n =len(A)
+    m = len(v)
     Av = np.zeros(n)
     for i in range(n):
         s = 0.0
-        for j in range(n):
+        for j in range(m):
               s += A[i,j]*v[j]
         Av[i] = s
     return Av
+
+def scalar(u,v):
+    n = len(u)
+    s = 0.0
+    for i in range(n):
+        s += u[i]*v[i]
+    return s
+
+def vecvec(u,v):
+    n = len(u)
+    m = len(v)
+    uv = np.zeros((n,m))
+    for i in range(n):
+        for j in range(m):
+              uv[i,j]= u[i]*v[j]
+    return uv
+
+def norm_two(v):
+    n=len(v)
+    norm=v[0]**2
+    for i in range(1,n):
+        norm+=v[i]**2
+    norm=np.sqrt(norm)
+    return norm
     
 
 def gmres(w0, fct, sigma, tol):
-    a=0
     while True :
-        a+=1
-        print("*********************************************************\n")
-        print(a)
-        # q=(fct(w0+sigma*w0)-fct(w0))/sigma
-        # print('q=',q)
-        # r=-fct(w0)-q
         r=-fct(w0)
-        # print('r=',r)
         v=[]
-        v.append(r/np.linalg.norm(r,ord=2))
+        v.append(r/norm_two(r))
         M=get_preconditionner(Jacobian(w0))
         H=[]
         j=0
         while True :
             hh=[]
-            print('************ j=',j)
             xj=matvec(M, v[j])
             q=(fct(w0+sigma*xj)-fct(w0))/sigma
             vj=q
-            # print('q=',q)
             for i in range(j+1):
-                # print('---------------i=',i)
-                hij=np.dot(q,v[i])
-                # print('hij=',hij)
+                hij=scalar(q,v[i])
                 hh.append(hij)
-                # print(vj,hij*v[i])
                 vj-=hij*v[i]
-            hjpj=np.linalg.norm(vj,ord=2)
+            hjpj=norm_two(vj)
             hh.append(hjpj)
             H.append(hh)
-            print('H=',H)
             m=j
-            # print(hjpj)
             if hjpj==0.0 :
                 break
-            print('yes1')
             v.append(vj/hjpj)
-            print('v=',v)
-            print('hh=',hh)
-            print(np.linalg.norm(fct(w0)+q,ord=2))
-            if np.linalg.norm(fct(w0)+q,ord=2)<=tol:
+            if norm_two(fct(w0)+q)<=tol:
                 break
-            print('yes2')
             j+=1
-        print('m=',m)
         h=get_Hessenberg_matrix(H,m)
-        print('h=',h)
         # calcul of beta*e1
         beta=np.zeros(m)
-        beta[0]=np.linalg.norm(r,ord=2)
-        print('beta=',beta)
-        # Minimize for y
-        print('v=',v)
+        beta[0]=norm_two(r)
         y=np.linalg.lstsq(h.transpose(),beta,rcond=-1)[0]
-        print('y=',y)
-        # if len(y)>len(v):
-        #     y=y[:-1]
-        w0_new=w0+np.dot(np.asarray(v).transpose(),y)
-        print('w0_new=',w0_new)
-        print('w0=',w0)
-        print('norm=',np.linalg.norm(fct(w0),ord=2))
-        if np.linalg.norm(fct(w0),ord=2)<=tol:
+        w0_new=w0+matvec(np.asarray(v).transpose(),y)
+        if norm_two(fct(w0))<=tol or norm_two(w0-w0_new)<=0.00000001 :
             break
-        tol=max(0.9*(np.linalg.norm(fct(w0_new),ord=2)/np.linalg.norm(fct(w0),ord=2))**2,0.9*tol**2)
-        print(tol)
+        # tol=max(0.9*(norm_two(fct(w0_new))/norm_two(fct(w0)))**2,0.9*tol**2)
+        # print(tol)
         w0=w0_new
-        
-    # Compute residual
-    # res=np.linalg.norm(beta-np.dot(h,y),ord=2)
-    # print('residual=',res)
     
-    
-    return w0_new,m
+    return w0_new
 
 
 from scipy.optimize import fsolve
 
 def func(x):
-
     return np.array([x[0] * np.cos(x[1]) - 4, x[1] * x[0] - x[1] - 5])
 
 root = fsolve(func, [1, 1])
@@ -180,34 +168,12 @@ def Jacobian(x):
     return np.array([[np.cos(x[1]),-x[0] * np.sin(x[1])],[x[1],x[0]-1]])
 
 
-# a=np.array([1, 1, 1])
-# b=np.array([5, 6, 7])
-# print(a)
-# print(a+b)
-# print(func(a))
-# print(np.zeros(3))
-result,k=gmres(np.array([0,0]), func, 0.1, 1e-16)
-print("\n***************** GMRES ******************** \n")
-print('k=',k)
-print(result)
-print(func(result))
+result=gmres(np.array([0,0]), func, 0.01, 1e-10)
+print("\n***************** Using Newton-GMRES ******************** \n")
+print('x=',result)
+print('f(x)=',func(result))
 
-print("\n************** Exact *********************\n")
-print(root)
+print("\n***************** Exact **********************************\n")
+print('x=',root)
 # array([6.50409711, 0.90841421])
-
-print(func(root))  # func(root) should be almost 0.0.
-# array([ True,  True])
-
-# print("\n**************************************\n")
-# w0=np.array([1,1])
-# F=func(w0)
-# print(F)
-# q=(func(w0+0.1*w0)-func(w0))/0.1
-# print(q)
-# r=-F-q
-# print(r)
-# b=np.linalg.norm(r,ord=2)
-# print(b)
-# v0=r/b
-# print(v0)
+print('f(x)=',func(root))  # func(root) should be almost 0.0.
