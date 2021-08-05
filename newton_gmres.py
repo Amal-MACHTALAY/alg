@@ -29,7 +29,6 @@ def AxB(X,Y):
     return XY
 
 
-# def LU(L:'float32[:,:]',U:'float32[:,:]'):
 def LU_decomposition(A):
     """ Compute LU Factorization """
     n = max(len(A),len(A[0]))
@@ -113,6 +112,15 @@ def norm_two(v):
         norm+=v[i]**2
     norm=np.sqrt(norm)
     return norm
+
+def matT(A):
+    n=len(A)
+    m=len(A[0])
+    At=np.zeros((m,n))
+    for i in range(m):
+        for j in range(n):
+            At[i,j]=A[j,i]
+    return At
     
 
 def gmres(w0, fct, sigma, tol):
