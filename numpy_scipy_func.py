@@ -21,14 +21,7 @@ a=np.arange(9) - 4
 print(a)
 print(np.linalg.norm(a,ord=2))
 print(norm_two(a))
-
-
-# def linear_least_squares(a,b):
-# """ Computes the vector x that approximatively solves the equation ax = b. 
-#     x minimizes the Euclidean 2-norm ||b-ax|| 
-#     """
     
-
 
 def AxB(X,Y):
     XY=np.zeros((len(X),len(Y[0])))
@@ -96,7 +89,7 @@ def inv_matrix_LU_deco(M):
     inv_M=AxB(inv_U,inv_L)
     return inv_M
  
-
+print('\n***************')
 m=np.array([[3,4,-1],[2,0,1],[1,3,-2]])
 print(m)
 l,u=LU_decomposition(m)
@@ -123,5 +116,53 @@ def matvec(A,v):
         Av[i] = s
     return Av
 
+def scalar(u,v):
+    n = len(u)
+    s = 0.0
+    for i in range(n):
+        s += u[i]*v[i]
+    return s
+
+def vecvec(u,v):
+    n = len(u)
+    m = len(v)
+    uv = np.zeros((n,m))
+    for i in range(n):
+        for j in range(m):
+              uv[i,j]= u[i]*v[j]
+    return uv
+
+print('\n***************')
 vec=np.array([1,1,1])
+vec2=np.array([1,2,3])
 print(matvec(m, vec))
+print(scalar(vec,vec2))
+print(vecvec(vec,vec2))
+
+def matT(A):
+    n=len(A)
+    m=len(A[0])
+    At=np.zeros((m,n))
+    for i in range(m):
+        for j in range(n):
+            At[i,j]=A[j,i]
+    return At
+
+print('\n***************')
+print('m=',m)
+print(matT(m))
+
+def vec_asarray(v):
+    vv=np.zeros((len(v),len(v[0])))
+    for i in range(len(v)):
+        for j in range(len(v[0])):
+            vv[i,j]=v[i][j]
+    return vv
+
+print('\n***************')
+v=[]
+v.append(np.array([1,2]))
+v.append(np.array([3,4]))
+v.append(np.array([5,6]))
+print('v=',v)
+print(vec_asarray(v))
