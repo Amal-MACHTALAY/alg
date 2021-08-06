@@ -8,9 +8,6 @@ Created on Sat Jul 24 19:28:40 2021
 
 import numpy as np
 
-def compute_residual(w,x,sigma):
-    return -func(w)-((func(w+sigma*x)-func(w))/sigma)
-
 def get_Hessenberg_matrix(H,m):
     h=np.zeros((m+1,m))
     for s in range(m):
@@ -29,7 +26,8 @@ def AxB(X,Y):
     return XY
 
 
-def LU_decomposition(A):
+def get_preconditionner(A):
+    # A: Jacobian of fct, Ignoring the forward-backward coupling  parts
     """ Compute LU Factorization """
     n = max(len(A),len(A[0]))
     L = np.zeros((n,n),dtype=np.float32)
@@ -37,88 +35,57 @@ def LU_decomposition(A):
         L[i,i] = 1
     U = np.zeros((n,n),dtype= np.float32)
     U[:] = A
-    # n = len(L)
     for i in range(n):
         p=U[i,i]
         for j in range(i+1,n):
             L[j,i] = (1/p)*U[j,i]
             for k in range(n):
                 U[j,k] = U[j,k] - L[j,i]*U[i,k]
-    return L,U
-
-
-
-def LU_inverse(L,U):
-    n = U.shape[0]
-    u = U.copy()
-    E1 = np.eye(n) # This E1 is used to find the inverse of U
+                
+    """ This E1 is used to find the inverse of U """
+    E1 = np.eye(n) 
     for j in range(n-1,-1,-1):
-        E1[j,:] = E1[j,:]/u[j,j]
-        u[j,:] = u[j,:]/u[j,j]
+        E1[j,:] = E1[j,:]/U[j,j]
+        U[j,:] = U[j,:]/U[j,j]
         for i in range(j-1,-1,-1):
-            E1[i,:] = E1[i,:]-E1[j,:]*u[i,j]
-            u[i,:] = u[i,:]-u[j,:]*u[i,j]
+            E1[i,:] = E1[i,:]-E1[j,:]*U[i,j]
+            U[i,:] = U[i,:]-U[j,:]*U[i,j]
     
-    m = L.shape[0]
-    l = L.copy()
-    E2 = np.eye(m) # This E2 is used to find the inverse of L
-    for j in range(m):
-        for i in range(j+1,m):
-            E2[i,:] = E2[i,:]-E2[j,:]*l[i,j]
-            l[i,:] = l[i,:]-l[j,:]*l[i,j]
-        
-    return E2,E1
+    """ This E2 is used to find the inverse of L """
+    E2 = np.eye(n) 
+    for j in range(n):
+        for i in range(j+1,n):
+            E2[i,:] = E2[i,:]-E2[j,:]*L[i,j]
+            L[i,:] = L[i,:]-L[j,:]*L[i,j]
+            
+    return AxB(E1,E2)
 
-def get_preconditionner(A):
-    # A: Jacobian of fct, Ignoring the forward-backward coupling  parts
-    # the *incomplete LU* decomposition
-    L,U=LU_decomposition(A)
-    inv_L,inv_U=LU_inverse(L,U)
-    M=AxB(inv_U,inv_L)
-
-    return M
 
 def matvec(A,v):
-    n =len(A)
-    m = len(v)
-    Av = np.zeros(n)
-    for i in range(n):
+    Av = np.zeros(len(A))
+    for i in range(len(A)):
         s = 0.0
-        for j in range(m):
+        for j in range(len(v)):
               s += A[i,j]*v[j]
         Av[i] = s
     return Av
 
 def scalar(u,v):
-    n = len(u)
     s = 0.0
-    for i in range(n):
+    for i in range(len(u)):
         s += u[i]*v[i]
     return s
 
-def vecvec(u,v):
-    n = len(u)
-    m = len(v)
-    uv = np.zeros((n,m))
-    for i in range(n):
-        for j in range(m):
-              uv[i,j]= u[i]*v[j]
-    return uv
-
 def norm_two(v):
-    n=len(v)
     norm=v[0]**2
-    for i in range(1,n):
+    for i in range(1,len(v)):
         norm+=v[i]**2
-    norm=np.sqrt(norm)
-    return norm
+    return np.sqrt(norm)
 
 def matT(A):
-    n=len(A)
-    m=len(A[0])
-    At=np.zeros((m,n))
-    for i in range(m):
-        for j in range(n):
+    At=np.zeros((len(A[0]),len(A)))
+    for i in range(len(A[0])):
+        for j in range(len(A)):
             At[i,j]=A[j,i]
     return At
 
@@ -129,8 +96,9 @@ def vec_asarray(v):
             vv[i,j]=v[i][j]
     return vv
     
+    
 
-def newton_gmres(w0, fct, sigma, tol):
+def gmres(w0, fct, sigma, tol):
     while True :
         r=-fct(w0)
         v=[]
@@ -161,10 +129,12 @@ def newton_gmres(w0, fct, sigma, tol):
         # calcul of beta*e1
         beta=np.zeros(m)
         beta[0]=norm_two(r)
+        # Minimize for y
         y=np.linalg.lstsq(matT(h),beta,rcond=-1)[0]
         w0_new=w0+matvec(matT(vec_asarray(v)),y)
         if norm_two(fct(w0))<=tol or norm_two(w0-w0_new)<=0.00000001 :
             break
+        # # Update tolerance 
         # tol=max(0.9*(norm_two(fct(w0_new))/norm_two(fct(w0)))**2,0.9*tol**2)
         # print(tol)
         w0=w0_new
@@ -179,11 +149,13 @@ def func(x):
 
 root = fsolve(func, [1, 1])
 
+print(func([0,0]))
+
 def Jacobian(x):
     return np.array([[np.cos(x[1]),-x[0] * np.sin(x[1])],[x[1],x[0]-1]])
 
 
-result=newton_gmres(np.array([0,0]), func, 0.01, 1e-10)
+result=gmres(np.array([0,0]), func, 0.01, 1e-10)
 print("\n***************** Using Newton-GMRES ******************** \n")
 print('x=',result)
 print('f(x)=',func(result))
