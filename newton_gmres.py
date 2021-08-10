@@ -8,6 +8,7 @@ Created on Sat Jul 24 19:28:40 2021
 
 import numpy as np
 
+
 def get_Hessenberg_matrix(H,m):
     h=np.zeros((m+1,m))
     for s in range(m):
@@ -28,20 +29,20 @@ def AxB(X,Y):
 
 def get_preconditionner(A):
     # A: Jacobian of fct, Ignoring the forward-backward coupling  parts
+    n = len(A)
+    
     """ Compute LU Factorization """
-    n = max(len(A),len(A[0]))
     L = np.zeros((n,n),dtype=np.float32)
     for i in range(n):
         L[i,i] = 1
     U = np.zeros((n,n),dtype= np.float32)
     U[:] = A
     for i in range(n):
-        p=U[i,i]
         for j in range(i+1,n):
-            L[j,i] = (1/p)*U[j,i]
+            L[j,i] = (1/U[i,i])*U[j,i]
             for k in range(n):
                 U[j,k] = U[j,k] - L[j,i]*U[i,k]
-                
+         
     """ This E1 is used to find the inverse of U """
     E1 = np.eye(n) 
     for j in range(n-1,-1,-1):
@@ -96,7 +97,30 @@ def vec_asarray(v):
             vv[i,j]=v[i][j]
     return vv
     
-    
+def least_squares(A,b):
+    At=matT(A)
+    AtA=AxB(At,A)
+    Atb=matvec(At,b)
+    return GC(AtA,Atb) 
+
+def GC(A,b):
+    """ Conjugate Gradient """
+    r=b
+    p=b
+    x=np.zeros(len(A))
+    rr = scalar(r,r)
+    while True:
+        Ap = matvec(A,p)
+        alpha = rr / scalar(Ap,p)
+        x = x + alpha*p
+        r = r - alpha*Ap
+        rr_new = scalar(r,r)
+        if np.sqrt(rr_new) < 1e-08:
+            break
+        p = r + (rr_new/rr)*p
+        rr = rr_new
+    return x
+
 
 def gmres(w0, fct, sigma, tol):
     while True :
@@ -130,9 +154,11 @@ def gmres(w0, fct, sigma, tol):
         beta=np.zeros(m)
         beta[0]=norm_two(r)
         # Minimize for y
-        y=np.linalg.lstsq(matT(h),beta,rcond=-1)[0]
+        y=least_squares(matT(h),beta)
+        # y=np.linalg.lstsq(matT(h),beta,rcond=-1)[0]
+        # print('y=',y)
         w0_new=w0+matvec(matT(vec_asarray(v)),y)
-        if norm_two(fct(w0))<=tol or norm_two(w0-w0_new)<=0.00000001 :
+        if norm_two(fct(w0))<=tol or norm_two(w0-w0_new)<=1e-08 :
             break
         # # Update tolerance 
         # tol=max(0.9*(norm_two(fct(w0_new))/norm_two(fct(w0)))**2,0.9*tol**2)
@@ -142,25 +168,23 @@ def gmres(w0, fct, sigma, tol):
     return w0_new
 
 
-from scipy.optimize import fsolve
-
 def func(x):
     return np.array([x[0] * np.cos(x[1]) - 4, x[1] * x[0] - x[1] - 5])
 
-root = fsolve(func, [1, 1])
-
-print(func([0,0]))
 
 def Jacobian(x):
     return np.array([[np.cos(x[1]),-x[0] * np.sin(x[1])],[x[1],x[0]-1]])
 
 
-result=gmres(np.array([0,0]), func, 0.01, 1e-10)
+
 print("\n***************** Using Newton-GMRES ******************** \n")
+result=gmres(np.array([0,0]), func, 0.01, 1e-10)
 print('x=',result)
 print('f(x)=',func(result))
 
 print("\n***************** Exact **********************************\n")
+from scipy.optimize import fsolve
+root = fsolve(func, [1, 1])
 print('x=',root)
 # array([6.50409711, 0.90841421])
 print('f(x)=',func(root))  # func(root) should be almost 0.0.
